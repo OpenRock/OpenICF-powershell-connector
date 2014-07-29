@@ -123,68 +123,73 @@ Function Get-ConnectorObjectTemplate {
 
 	$value = @{}
 	$value["attributeString"] = "retipipiter"
-	$value["attributeStringMultivalue"] = ("value1", "value2") -as [string[]]
+	$value["attributeStringMultivalue"] = ("value1", "value2")
 	$value["attributelongp"] = 111 -as [long]
-	$value["attributelongpMultivalue"] = (121, 131) -as [long[]]
+	$value["attributelongpMultivalue"] = ((121 -as [long]), (131 -as [long]))
 	$value["attributeLong"] = 14 -as [long]
-	$value["attributeLongMultivalue"] = ((15 -as [long]), (16 -as [long])) -as [long[]]
+	$value["attributeLongMultivalue"] = ((15 -as [long]), (16 -as [long]))
 	$value["attributechar"] = 'a' -as [char]
-	$value["attributecharMultivalue"] = (('b' -as [char]), ('c' -as [char])) -as [char[]]
+	$value["attributecharMultivalue"] = (('b' -as [char]), ('c' -as [char]))
 	$value["attributeCharacter"] = 'd' -as [char]
-	$value["attributeCharacterMultivalue"] = (('e' -as [char]), ('f' -as [char])) -as [char[]]
-	#$value["attributedoublep"] = 
-	#$value["attributedoublepMultivalue"] = 
+	$value["attributeCharacterMultivalue"] = (('e' -as [char]), ('f' -as [char]))
+	$value["attributedoublep"] = 17 -as [double]
+	$value["attributedoublepMultivalue"] = ((18 -as [double]), (19 -as [double])) 
 	$value["attributeDouble"] = 17 -as [double]
-	$value["attributeDoubleMultivalue"] = ((18 -as [double]), (19 -as [double])) -as [Double[]]
+	$value["attributeDoubleMultivalue"] = ((18 -as [double]), (19 -as [double]))
 	$value["attributefloatp"] = 20 -as [float]
-	$value["attributefloatpMultivalue"] = ((21 -as [float]), (22 -as [float])) -as [float[]]
+	$value["attributefloatpMultivalue"] = ((21 -as [float]), (22 -as [float]))
 	$value["attributeFloat"] = 23 -as [float]
-	$value["attributeFloatMultivalue"] = ((24 -as [float]), (25 -as [float])) -as [float[]]
+	$value["attributeFloatMultivalue"] = ((24 -as [float]), (25 -as [float]))
 	$value["attributeint"] = 26 -as [int]
-	$value["attributeintMultivalue"] = ((27 -as [int]), (28 -as [int])) -as [int[]]
+	$value["attributeintMultivalue"] = ((27 -as [int]), (28 -as [int]))
 	$value["attributeInteger"] = 29 -as [int]
-	$value["attributeIntegerMultivalue"] = ((30 -as [int]), (31 -as [int])) -as [int[]]
+	$value["attributeIntegerMultivalue"] = ((30 -as [int]), (31 -as [int]))
 	$value["attributebooleanp"] = $true -as [bool]
-	$value["attributebooleanpMultivalue"] = (($true -as [bool]), ($false -as [bool])) -as [bool[]]
+	$value["attributebooleanpMultivalue"] = (($true -as [bool]), ($false -as [bool]))
 	$value["attributeBoolean"] = $true -as [Boolean]
-	$value["attributeBooleanMultivalue"] = (($true -as [Boolean]), ($false -as [Boolean])) -as [Boolean[]]
+	$value["attributeBooleanMultivalue"] = (($true -as [Boolean]), ($false -as [Boolean]))
 	$value["attributebytep"] = 48 -as [byte]
-	$value["attributebytepMultivalue"] = ((49 -as [byte]), (50 -as [byte])) -as [byte[]]
+	$value["attributebytepMultivalue"] = ((49 -as [byte]), (50 -as [byte]))
 	$value["attributeByte"] = 51 -as [Byte]
-	$value["attributeByteMultivalue"] = ((52 -as [Byte]), (53 -as [Byte])) -as [Byte[]]
+	$value["attributeByteMultivalue"] = ((52 -as [Byte]), (53 -as [Byte]))
 	$value["attributeByteArray"] = ((1 -as [byte]), (2 -as [byte])) -as [byte[]]
-	$value["attributeByteArrayMultivalue"] = (((1 -as [byte]), (2 -as [byte])), ((1 -as [byte]), (2 -as [byte]))) -as [byte[][]]
+	$a = ((1 -as [byte]), (2 -as [byte])) -as [byte[]]
+	$b = ((3 -as [byte]), (4 -as [byte])) -as [byte[]]
+	$value["attributeByteArrayMultivalue"] = ($a, $b)
 	
 	$bigInt1 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigInteger("1")
 	$bigInt0 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigInteger("0")
 	$bigInt10 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigInteger("10")
 	
 	$value["attributeBigInteger"] = $bigInt1
-	$value["attributeBigIntegerMultivalue"] = ($bigInt0, $bigInt10) -as [Org.IdentityConnectors.Framework.Common.Objects.BigInteger[]]
+	$value["attributeBigIntegerMultivalue"] = ($bigInt0, $bigInt10)
 	
 	$bigDec1 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigDecimal($bigInt1,0)
 	$bigDec0 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigDecimal($bigInt0,0)
 	$bigDec10 = New-Object Org.IdentityConnectors.Framework.Common.Objects.BigDecimal($bigInt10,0)
 	
 	$value["attributeBigDecimal"] = $bigDec1 -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal]
-	$value["attributeBigDecimalMultivalue"] = (($bigDec0 -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal]), ($bigDec0 -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal])) -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal[]]
+	$value["attributeBigDecimalMultivalue"] = (($bigDec0 -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal]), ($bigDec0 -as [Org.IdentityConnectors.Framework.Common.Objects.BigDecimal]))
 	
-	#$gba = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
-	#[System.Text.Encoding]::UTF8.GetBytes("array") | ForEach-Object($gba.AppendByte($_))
-	#$gba1 = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
-	#[System.Text.Encoding]::UTF8.GetBytes("item1") | ForEach-Object($gba.AppendByte($_))
-	#$gba2 = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
-	#[System.Text.Encoding]::UTF8.GetBytes("item1") | ForEach-Object($gba.AppendByte($_))
+	$gba = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
+	[System.Text.Encoding]::UTF8.GetBytes("array") | ForEach-Object($gba.AppendByte($_))
+	$gba1 = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
+	[System.Text.Encoding]::UTF8.GetBytes("item1") | ForEach-Object($gba.AppendByte($_))
+	$gba2 = New-Object Org.IdentityConnectors.Common.Security.GuardedByteArray
+	[System.Text.Encoding]::UTF8.GetBytes("item1") | ForEach-Object($gba.AppendByte($_))
 	
-	#$value["attributeGuardedByteArray"] = $gba
-	#$value["attributeGuardedByteArrayMultivalue"] = ($gba1, $gba2) -as [Org.IdentityConnectors.Common.Security.GuardedByteArray[]]
+	$value["attributeGuardedByteArray"] = $gba
+	$value["attributeGuardedByteArrayMultivalue"] = ($gba1, $gba2)
 	
-	#$value["attributeGuardedString"] = New-Object Org.IdentityConnectors.Common.Security.GuardedString("secret".ToCharArray())
+	$ssecret = ConvertTo-SecureString -String "secret" -AsPlainText -Force
+	$ssecret1 = ConvertTo-SecureString -String "secret1" -AsPlainText -Force
+	$ssecret2 = ConvertTo-SecureString -String "secret2" -AsPlainText -Force
+	$value["attributeGuardedString"] = New-Object Org.IdentityConnectors.Common.Security.GuardedString($ssecretcret)
 	
-	#$gs1 = New-Object Org.IdentityConnectors.Common.Security.GuardedString("secret1".ToCharArray())
-	#$gs2 = New-Object Org.IdentityConnectors.Common.Security.GuardedString("secret2".ToCharArray())
+	$gs1 = New-Object Org.IdentityConnectors.Common.Security.GuardedString($ssecret1)
+	$gs2 = New-Object Org.IdentityConnectors.Common.Security.GuardedString($ssecret2)
 	
-	#$value["attributeGuardedStringMultivalue"] = ($gs1, $gs2) -as [Org.IdentityConnectors.Common.Security.GuardedString[]]
+	$value["attributeGuardedStringMultivalue"] = ($gs1, $gs2)
 	
 	$value["attributeMap"] = @{"string" = "String";
 								"number" = 42;
@@ -207,7 +212,7 @@ Function Get-ConnectorObjectTemplate {
 								"nullValue" = $null;
 								"collection" = @("item1", "item2");
 								"object" = @{"key1" = "value1"; "key2" = "value2"}
-								}) -as [hashtable[]]
+								})
 	
 	return $value
 }
