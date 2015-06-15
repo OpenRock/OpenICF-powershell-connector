@@ -23,7 +23,6 @@
  */
 using System;
 using System.Collections.Concurrent;
-using System.Management.Automation.Runspaces;
 using Org.IdentityConnectors.Common;
 using Org.IdentityConnectors.Common.Security;
 using System.Collections.ObjectModel;
@@ -86,23 +85,13 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         { get; set; }
 
         [ConfigurationProperty(Required = true, DisplayMessageKey = "display_VariablesPrefix", HelpMessageKey = "help_VariablesPrefix",
-            GroupMessageKey = "group_PowerShell", Order = 11)]
+            GroupMessageKey = "group_PowerShell", Order = 12)]
         public String VariablesPrefix
         { get; set; }
 
         [ConfigurationProperty(Required = true, DisplayMessageKey = "display_QueryFilterType", HelpMessageKey = "help_QueryFilterType",
-            GroupMessageKey = "group_PowerShell", Order = 12)]
+            GroupMessageKey = "group_PowerShell", Order = 16)]
         public String QueryFilterType
-        { get; set; }
-
-        [ConfigurationProperty(DisplayMessageKey = "display_ReloadScriptOnExecution", HelpMessageKey = "help_ReloadScriptOnExecution",
-            GroupMessageKey = "group_PowerShell", Order = 13)]
-        public Boolean ReloadScriptOnExecution
-        { get; set; }
-
-        [ConfigurationProperty(DisplayMessageKey = "display_UseInterpretersPool", HelpMessageKey = "help_UseInterpretersPool",
-            GroupMessageKey = "group_PowerShell", Order = 14)]
-        public Boolean UseInterpretersPool
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_SubstituteUidAndNameInQueryFilter", HelpMessageKey = "help_SubstituteUidAndNameInQueryFilter",
@@ -111,48 +100,38 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_UidAttributeName", HelpMessageKey = "help_UidAttributeName",
-            GroupMessageKey = "group_PowerShell", Order = 16)]
+            GroupMessageKey = "group_PowerShell", Order = 13)]
         public String UidAttributeName
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_NameAttributeName", HelpMessageKey = "help_NameAttributeName",
-            GroupMessageKey = "group_PowerShell", Order = 17)]
+            GroupMessageKey = "group_PowerShell", Order = 14)]
         public String NameAttributeName
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_PsModulesToImport", HelpMessageKey = "help_PsModulesToImport",
-            GroupMessageKey = "group_PowerShell", Order = 18)]
+            GroupMessageKey = "group_PowerShell", Order = 17)]
         public string[] PsModulesToImport
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_Host", HelpMessageKey = "help_Host",
-            GroupMessageKey = "group_PowerShell", Order = 19)]
+            GroupMessageKey = "group_PowerShell", Order = 18)]
         public String Host
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_Port", HelpMessageKey = "help_Port",
-            GroupMessageKey = "group_PowerShell", Order = 20)]
+            GroupMessageKey = "group_PowerShell", Order = 19)]
         public String Port
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_Login", HelpMessageKey = "help_Login",
-            GroupMessageKey = "group_PowerShell", Order = 21)]
+            GroupMessageKey = "group_PowerShell", Order = 20)]
         public String Login
         { get; set; }
 
         [ConfigurationProperty(DisplayMessageKey = "display_Password", HelpMessageKey = "help_Password",
-            GroupMessageKey = "group_PowerShell", Confidential  = true, Order = 22)]
+            GroupMessageKey = "group_PowerShell", Confidential  = true, Order = 14)]
         public GuardedString Password
-        { get; set; }
-
-        [ConfigurationProperty(DisplayMessageKey = "display_MinInterpretersPoolSize", HelpMessageKey = "help_MinInterpretersPoolSize",
-            GroupMessageKey = "group_PowerShell", Order = 23)]
-        public int minInterpretersPoolSize
-        { get; set; }
-
-        [ConfigurationProperty(DisplayMessageKey = "display_MaxInterpretersPoolSize", HelpMessageKey = "help_MaxInterpretersPoolSize",
-            GroupMessageKey = "group_PowerShell", Order = 24)]
-        public int maxInterpretersPoolSize
         { get; set; }
 
 
@@ -170,8 +149,6 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             VariablesPrefix = "Connector";
             QueryFilterType = MsPowerShellConnector.Visitors.Map.ToString();
             SubstituteUidAndNameInQueryFilter = false;
-            ReloadScriptOnExecution = false;
-            UseInterpretersPool = true;
             UidAttributeName = Uid.NAME;
             NameAttributeName = Name.NAME;
             PsModulesToImport = new string[]{};
@@ -179,9 +156,6 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             Port = null;
             Login = "";
             Password = null;
-            minInterpretersPoolSize = 1;
-            maxInterpretersPoolSize = 5;
-
         }
 
         public override void Validate()
@@ -235,18 +209,22 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             {
                 throw new ConfigurationException("QueryFilterType must be Native|Map|Ldap|AdPsModule");
             }
-
-            if (minInterpretersPoolSize < 1 )
-            {
-                throw new ConfigurationException("minInterpretersPoolSize can not be less than 1");
-            }
-
-            if (maxInterpretersPoolSize < minInterpretersPoolSize)
-            {
-                throw new ConfigurationException("maxInterpretersPoolSize can not be less than minInterpretersPoolSize");
-            }
         }
 
+        public void Release()
+        {
+            if (null != _host)
+            {
+                lock (this)
+                {
+                    if (null != _host)
+                    {
+                        _host.Dispose();
+                        _host = null;
+                    }
+                }
+            }
+        }
 
         public Collection<String> GetValidScripts()
         {
@@ -272,51 +250,25 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             }
         }
 
-        private RunspacePool _rsPool = null;
+        private MsPowerShellHost _host = null;
 
-        public RunspacePool GetRunspacePool()
+        private MsPowerShellHost MsPowerShellHost
         {
-            if (null == _rsPool)
+            get
             {
-                lock (this)
+                if (null == _host)
                 {
-                    if (null == _rsPool)
+                    lock (this)
                     {
-                        if (PsModulesToImport.Length > 0)
+                        if (null == _host)
                         {
-                            InitialSessionState initial = InitialSessionState.CreateDefault();
-                            initial.ImportPSModule(PsModulesToImport);
-                            _rsPool = RunspaceFactory.CreateRunspacePool(initial);
+                            _host = new MsPowerShellHost();
                         }
-                        else
-                        {
-                            _rsPool = RunspaceFactory.CreateRunspacePool();
-                        }
-                        _rsPool.SetMinRunspaces(minInterpretersPoolSize);
-                        _rsPool.SetMaxRunspaces(maxInterpretersPoolSize);
-                        _rsPool.Open();
                     }
                 }
-            }
-            return _rsPool;
-        }
-
-        public void Release()
-        {
-            if (null != _rsPool)
-            {
-                lock (this)
-                {
-                    if (null != _rsPool)
-                    {
-                        _rsPool.Close();
-                        _rsPool.Dispose();
-                        _rsPool = null;
-                    }
-                }
+                return _host;
             }
         }
-
 
     }
 }
