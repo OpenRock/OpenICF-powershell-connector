@@ -250,7 +250,7 @@ function Update-User ($attributes)
 		$uparm.Add("NewUserPrincipalName", $upn.GetNameValue())
 		try
 		{
-			$user = Set-MsolUserPrincipalName $uparm
+			$user = Set-MsolUserPrincipalName @uparm
 		}
 		catch
 		{
