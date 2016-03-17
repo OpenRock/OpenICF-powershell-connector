@@ -194,18 +194,18 @@ $AttributeInfoBuilder = [Org.IdentityConnectors.Framework.Common.Objects.Connect
 		$ocib.AddAttributeInfo($caib.Build())
 	}
 	
-	$TechnicalMulti = @("__ADD_MEMBERS__", "__REMOVE_MEMBERS__")
-	foreach ($attr in $TechnicalMulti)
-	{
-		$caib = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributeInfoBuilder($attr);
-		$caib.Creatable = $FALSE
-		$caib.Updateable = $TRUE
-		$caib.MultiValued = $TRUE
-		$caib.ReturnedByDefault = $FALSE
-		$caib.Readable = $FALSE
-		$caib.ValueType = [string];
-		$ocib.AddAttributeInfo($caib.Build())
-	}
+	#$TechnicalMulti = @("__ADD_MEMBERS__", "__REMOVE_MEMBERS__")
+	#foreach ($attr in $TechnicalMulti)
+	#{
+	#	$caib = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributeInfoBuilder($attr);
+	#	$caib.Creatable = $FALSE
+	#	$caib.Updateable = $TRUE
+	#	$caib.MultiValued = $TRUE
+	#	$caib.ReturnedByDefault = $FALSE
+	#	$caib.Readable = $FALSE
+	#	$caib.ValueType = [string];
+	#	$ocib.AddAttributeInfo($caib.Build())
+	#}
 	
 	$Connector.SchemaBuilder.DefineObjectClass($ocib.Build())
  }
