@@ -56,6 +56,10 @@
 
 #>
 
+# See https://technet.microsoft.com/en-us/library/hh847796.aspx
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
 try
 {
 $AttributeInfoBuilder = [Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributeInfoBuilder]
@@ -179,14 +183,14 @@ $AttributeInfoBuilder = [Org.IdentityConnectors.Framework.Common.Objects.Connect
 		$ocib.AddAttributeInfo($caib.Build())
 	}
 	
+	# Helper attribute to show the members
 	$TechnicalMultiRO = @("__MEMBERS__")
 	foreach ($attr in $TechnicalMultiRO)
 	{
 		$caib = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributeInfoBuilder($attr);
 		$caib.Creatable = $FALSE
-		$caib.Updateable = $FALSE
 		$caib.MultiValued = $TRUE
-		$caib.ValueType = [string];
+		$caib.ValueType = [object];
 		$ocib.AddAttributeInfo($caib.Build())
 	}
 	
@@ -206,7 +210,7 @@ $AttributeInfoBuilder = [Org.IdentityConnectors.Framework.Common.Objects.Connect
 	$Connector.SchemaBuilder.DefineObjectClass($ocib.Build())
  }
  }
- catch #Rethrow the original exception
- {
- 	throw
- }
+catch #Re-throw the original exception message within a connector exception
+{
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
+}

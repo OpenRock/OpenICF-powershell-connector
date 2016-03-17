@@ -53,26 +53,30 @@
 	https://msdn.microsoft.com/en-us/library/azure/jj151815.aspx
 #>
 
+# See https://technet.microsoft.com/en-us/library/hh847796.aspx
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
 try
 {
  if ($Connector.Operation -eq "TEST")
  {
 	if (!$Env:OpenICF_AAD) {
-		$msolcred = New-object System.Management.Automation.PSCredential $Connector.Configuration.Login, $Connector.Configuration.Password.ToSecureString()
+		$msolcred = New-Object System.Management.Automation.PSCredential $Connector.Configuration.Login, $Connector.Configuration.Password.ToSecureString()
 		connect-msolservice -credential $msolcred
 		$Env:OpenICF_AAD = $true
-		Write-Verbose -verbose "New session created"
+		Write-Verbose "New session created"
 	}
 	
 	$comp = Get-MsolCompanyInformation
-	Write-Verbose -verbose $comp.DisplayName
+	Write-Verbose "Company: $($comp.DisplayName)"
  }
  else
  {
- 	throw new Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("TestScript can not handle operation: $($Connector.Operation)")
+ 	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("TestScript can not handle operation: $($Connector.Operation)")
  }
 }
-catch #Rethrow the original exception
+catch #Re-throw the original exception message within a connector exception
 {
-	throw
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
 }

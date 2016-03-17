@@ -67,28 +67,32 @@
 # the query filter "UserPrincipalName eq JSmith" will come as the following map:
 # @{'Not' = false; 'Left' = 'UserPrincipalName'; 'Operation' = 'EQUALS'; 'Right' = 'JSmith'}
 
+# See https://technet.microsoft.com/en-us/library/hh847796.aspx
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
 
 # We define a filter to process results through a pipe and feed the result handler
-filter Process-Results {
-	$result = @{"__UID__" = $_.ObjectId.ToString(); "__NAME__"= $_.UserPrincipalName}
-	
-	if ($Connector.ObjectClass.Type -eq "__GROUP__")
-	{
-			$result.Remove("__NAME__")
-			$result.Add("__NAME__", $_.DisplayName)
-	}
-	
+filter Process-Groups {
+	$result = @{"__UID__" = $_.ObjectId.ToString(); "__NAME__"= $_.DisplayName}
+
 	foreach($attrName in $Connector.Options.AttributesToGet)
 	{
-		if ($Connector.ObjectClass.Type -eq "__GROUP__" -and $attrName -eq "__MEMBERS__")
+		if ($attrName -eq "__MEMBERS__")
 		{
-			 $members = Get-MsolGroupMember -All -GroupObjectId $result["__UID__"]
-			 $list = @()
-			 foreach($member in $members)
-			 {
-				$list += $member.EmailAddress
-			 }
-			 $result.Add("__MEMBERS__",$list)
+			$list = @()
+			Get-MsolGroupMember -All -GroupObjectId $result["__UID__"] | foreach {
+				# ICF supports only Dictionary<Object, Object>
+				# Using Powershell standard @{} hashmap will fail...
+				# See https://bugster.forgerock.org/jira/browse/OPENICF-523
+				$dict = New-Object 'System.Collections.Generic.Dictionary[String,String]'
+				$dict.Add("ObjectId", $_.ObjectId)
+				$dict.Add("GroupMemberType", $_.GroupMemberType)
+				$dict.Add("DisplayName", $_.DisplayName)
+				$dict.Add("EmailAddress", $_.EmailAddress)
+				$list += [System.Collections.Generic.IDictionary[String,String]]($dict)
+			}
+			Write-verbose "Group contains $($list.Count) members"
+			$result.Add("__MEMBERS__",$list)
 		}
 		else
 		{
@@ -114,6 +118,33 @@ filter Process-Results {
 	$Connector.Result.Process($result)	
 }
 
+filter Process-Users {
+	$result = @{"__UID__" = $_.ObjectId.ToString(); "__NAME__"= $_.UserPrincipalName}
+	
+	foreach($attrName in $Connector.Options.AttributesToGet)
+	{
+			if ($_.$attrName -ne $null)
+			{
+				$value = $_.$attrName
+				if ($value.GetType().Name.Contains("List"))
+				{
+					$multi = @()
+					foreach($e in $value)
+					{
+						$multi += $e
+					}
+					$result.Add($attrName, $multi)
+				}
+				else
+				{
+					$result.Add($attrName, $_.$attrName.ToString())
+				}
+			}
+	}
+	$Connector.Result.Process($result)	
+}
+
+
 # Always put code in try/catch statement and make sure exceptions are re-thrown to connector
 try
 {
@@ -129,7 +160,7 @@ try
 		"__ACCOUNT__"
 		{
 			if ($Connector.Query -eq $null) {
-				Get-MsolUser -All | Process-Results
+				Get-MsolUser -All | Process-Users
 			}
 			elseif ($Connector.Query.Operation -eq "EQUALS")
 			{
@@ -137,68 +168,68 @@ try
 				{
 					"__UID__"
 					{
-						Get-MsolUser -ObjectId $Connector.Query.Right | Process-Results
+						Get-MsolUser -ObjectId $Connector.Query.Right | Process-Users
 					}
 					"__NAME__"
 					{
-						Get-MsolUser -UserPrincipalName $Connector.Query.Right | Process-Results
+						Get-MsolUser -UserPrincipalName $Connector.Query.Right | Process-Users
 					}
 					"UserPrincipalName"
 					{
-						Get-MsolUser -UserPrincipalName $Connector.Query.Right | Process-Results
+						Get-MsolUser -UserPrincipalName $Connector.Query.Right | Process-Users
 					}
 					"ObjectId"
 					{
-						Get-MsolUser -ObjectId $Connector.Query.Right | Process-Results
+						Get-MsolUser -ObjectId $Connector.Query.Right | Process-Users
 					}
 					"LiveId"
 					{
-						Get-MsolUser -LiveId $Connector.Query.Right | Process-Results
+						Get-MsolUser -LiveId $Connector.Query.Right | Process-Users
 					}
 					"City"
 					{
-						Get-MsolUser -All -City $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -City $Connector.Query.Right | Process-Users
 					}
 					"Country"
 					{
-						Get-MsolUser -All -Country $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -Country $Connector.Query.Right | Process-Users
 					}
 					"Department"
 					{
-						Get-MsolUser -All -Department $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -Department $Connector.Query.Right | Process-Users
 					}
 					"DomainName"
 					{
-						Get-MsolUser -All -DomainName $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -DomainName $Connector.Query.Right | Process-Users
 					}
 					"EnabledFilter"
 					{
-						Get-MsolUser -All -EnabledFilter $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -EnabledFilter $Connector.Query.Right | Process-Users
 					}
 					
 					"State"
 					{
-						Get-MsolUser -All -State $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -State $Connector.Query.Right | Process-Users
 					}
 					"TenantId"
 					{
-						Get-MsolUser -All -TenantId $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -TenantId $Connector.Query.Right | Process-Users
 					}
 					"UsageLocation"
 					{
-						Get-MsolUser -All -UsageLocation $Connector.Query.Right | Process-Results
+						Get-MsolUser -All -UsageLocation $Connector.Query.Right | Process-Users
 					}
 				}
 			}
 			elseif ($Connector.Query.Operation -eq "STARTSWITH")
 			{
-				Get-MsolUser -All -SearchString $Connector.Query.Right | Process-Results
+				Get-MsolUser -All -SearchString $Connector.Query.Right | Process-Users
 			}
 		}
 		"__GROUP__"
 		{
 			if ($Connector.Query -eq $null) {
-				Get-MsolGroup -All | Process-Results
+				Get-MsolGroup -All | Process-Groups
 			}
 			elseif ($Connector.Query.Operation -eq "EQUALS")
 			{
@@ -206,42 +237,47 @@ try
 				{
 					"__UID__"
 					{
-						Get-MsolGroup -ObjectId $Connector.Query.Right | Process-Results
+						Get-MsolGroup -ObjectId $Connector.Query.Right | Process-Groups
 					}
 					"ObjectId"
 					{
-						Get-MsolGroup -ObjectId $Connector.Query.Right | Process-Results
+						Get-MsolGroup -ObjectId $Connector.Query.Right | Process-Groups
 					}
 					"__NAME__"
 					{
-						Get-MsolGroup -DisplayName $Connector.Query.Right | Process-Results
+						Get-MsolGroup -DisplayName $Connector.Query.Right | Process-Groups
 					}
 					"DisplayName"
 					{
-						Get-MsolGroup -DisplayName $Connector.Query.Right | Process-Results
+						Get-MsolGroup -DisplayName $Connector.Query.Right | Process-Groups
 					}
 					"GroupType"
 					{
-						Get-MsolGroup -All -GroupType $Connector.Query.Right | Process-Results
+						Get-MsolGroup -All -GroupType $Connector.Query.Right | Process-Groups
 					}
 					"TenantId"
 					{
-						Get-MsolGroup -All -TenantId $Connector.Query.Right | Process-Results
+						Get-MsolGroup -All -TenantId $Connector.Query.Right | Process-Groups
 					}
 				}
 			}
 			elseif ($Connector.Query.Operation -eq "STARTSWITH")
 			{
-				Get-MsolGroup -All -SearchString $Connector.Query.Right | Process-Results
+				Get-MsolGroup -All -SearchString $Connector.Query.Right | Process-Groups
 			}
 		}
 		default
 		{
-			throw "Unsupported type: $($Connector.ObjectClass.Type)"	
+			throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
 		}
 	}	
 }
-catch #Re-throw the original exception
+catch #Re-throw the original exception message within a connector exception
 {
-	throw
+	($cause,$op) = $_.FullyQualifiedErrorId -split ","
+	if ($cause.EndsWith("NotFoundException"))
+	{
+		throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.UnknownUidException($_.Exception.Message)
+	}
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
 }

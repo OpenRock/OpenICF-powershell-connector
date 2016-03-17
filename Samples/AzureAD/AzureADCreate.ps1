@@ -59,6 +59,9 @@
 	https://msdn.microsoft.com/en-us/library/azure/jj151815.aspx
 #>
 
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
 $secutil = [Org.IdentityConnectors.Common.Security.SecurityUtil]
 
 function Create-NewGroup ($attributes)
@@ -82,15 +85,8 @@ function Create-NewGroup ($attributes)
 		}
 	}
 
-	try 
-	{
-		$group = New-MsolGroup @param 
-		$group.ObjectId.ToString()
-	}
-	catch
-	{
-		throw
-	}
+	$group = New-MsolGroup @param 
+	$group.ObjectId.ToString()
 }
 
 function Create-NewUser ($attributes)
@@ -114,9 +110,10 @@ function Create-NewUser ($attributes)
 	
 	# UPN and DisplayName are mandatory on create
 	# We're going to use PowerShell Splatting
+	
 	$param = @{"UserPrincipalName" = $accessor.GetName().GetNameValue()}
 	$param.Add("DisplayName", $accessor.FindString("DisplayName"))
-	
+
 	# Standard attributes - single value String
 	$standardSingle = @("City","Country ","Department","Fax","FirstName","LastName","MobilePhone","Office", "ImmutableId",
 						"PhoneNumber","PostalCode","PreferredLanguage","State","StreetAddress","Title","UsageLocation")
@@ -147,7 +144,7 @@ function Create-NewUser ($attributes)
 	{
 		$val = $accessor.FindBoolean($name)
 		if ($val -ne $null) 
-		{	 
+		{
 			if ($val)
 			{
 				$param.Add($name,$true)
@@ -177,19 +174,11 @@ function Create-NewUser ($attributes)
 		$param.Add("Password",$secutil::Decrypt($password))
 	}
 	
-	
 	# What's left? 
     # LicenseOptions: License options for license assignment. Used to selectively disable individual service plans within a SKU.
 	# TenantId
-	try
-	{
-		$user = New-MsolUser @param
-		$user.ObjectId.ToString()
-	}
-	catch
-	{
-		throw
-	}
+	$user = New-MsolUser @param
+	$user.ObjectId.ToString()
 }
 
 try
@@ -213,15 +202,18 @@ if ($Connector.Operation -eq "CREATE")
 		{
 			$Connector.Result.Uid = Create-NewGroup $Connector.Attributes
 		}
-		default {throw "Unsupported type: $($Connector.ObjectClass.Type)"}
+		default
+		{
+			throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
+		}
 	}
 }
 else
 {
-	throw new Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("CreateScript can not handle operation: $($Connector.Operation)")
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("CreateScript can not handle operation: $($Connector.Operation)")
 }
 }
-catch #Re-throw the original exception
+catch #Re-throw the original exception message within a connector exception
 {
-	throw
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
 }
