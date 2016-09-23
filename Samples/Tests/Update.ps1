@@ -1,6 +1,6 @@
 ﻿# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-# Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+# Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
 #
 # The contents of this file are subject to the terms
 # of the Common Development and Distribution License
@@ -210,9 +210,37 @@ if ($Connector.Operation -eq "UPDATE")
 		}
 	}
 }
-elseif(($Connector.Operation -eq "ADD_ATTRIBUTE_VALUES") -or ($Connector.Operation -eq "REMOVE_ATTRIBUTE_VALUES"))
+elseif($Connector.Operation -eq "ADD_ATTRIBUTE_VALUES")
 {
-	throw New-Object System.NotSupportedException
+	switch ($Connector.ObjectClass.Type)
+	{
+		"__ACCOUNT__" 
+		{
+			$VerbosePreference = 'Continue'
+			$attrName = $Connector.Attributes[0].Name
+			Write-Verbose -Message "ADD_ATTRIBUTE_VALUES: $attrName"
+		}
+		default 
+		{
+			throw New-Object System.NotSupportedException("$($Connector.Operation) operation of type:$($Connector.ObjectClass.Type) is not supported")
+		}
+	}
+}
+elseif($Connector.Operation -eq "REMOVE_ATTRIBUTE_VALUES")
+{
+		switch ($Connector.ObjectClass.Type)
+	{
+		"__ACCOUNT__"
+		{
+			$VerbosePreference = 'Continue'
+			$attrName = $Connector.Attributes[0].Name
+			Write-Verbose -Message "REMOVE_ATTRIBUTE_VALUES: $attrName"
+		}
+		default 
+		{
+			throw New-Object System.NotSupportedException("$($Connector.Operation) operation of type:$($Connector.ObjectClass.Type) is not supported")
+		}
+	}
 }
 else{
 	throw new Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("updateScript can not handle operation: $($Connector.Operation)")

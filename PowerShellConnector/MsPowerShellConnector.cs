@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -49,10 +49,8 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         RUNSCRIPTONCONNECTOR,
         RUNSCRIPTONRESOURCE,
         UPDATE,
-
-
-        //ADD_ATTRIBUTE_VALUES,
-        //REMOVE_ATTRIBUTE_VALUES
+        ADD_ATTRIBUTE_VALUES,
+        REMOVE_ATTRIBUTE_VALUES
     };
 
     [ConnectorClass("connector_displayName",
@@ -60,7 +58,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                      MessageCatalogPaths = new[] { "Org.ForgeRock.OpenICF.Connectors.MsPowerShell.Messages" }
                      )]
     public class MsPowerShellConnector : PoolableConnector, TestOp, SearchOp<Filter>,
-         CreateOp, UpdateOp, DeleteOp, SyncOp, AuthenticateOp, ResolveUsernameOp, SchemaOp, ScriptOnConnectorOp
+         CreateOp, UpdateAttributeValuesOp, DeleteOp, SyncOp, AuthenticateOp, ResolveUsernameOp, SchemaOp, ScriptOnConnectorOp
     {
         protected static String Username = "Username";
         protected static String Password = "Password";
@@ -431,31 +429,102 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 
         #endregion
 
-        #region UpdateOp Members
+        #region UpdateAttributeValuesOp Members
         public Uid Update(ObjectClass objectClass, Uid uid, ICollection<ConnectorAttribute> valuesToReplace, OperationOptions options)
         {
-            Trace.TraceInformation("Invoke Update ObjectClass: {0}/{1}", objectClass.GetObjectClassValue(), uid.GetUidValue());
-            try
+            if (StringUtil.IsNotBlank(_configuration.UpdateScriptFileName))
             {
-                Uid uidAfter = ExecuteUpdate(_configuration.UpdateScriptFileName, objectClass, uid, valuesToReplace, options);
-                if (uidAfter == null)
-                    throw new ConnectorException("Update script didn't return with a valid uid (__UID__) value");
-                Trace.TraceInformation("{0}:{1} updated", objectClass.GetObjectClassValue(), uidAfter.GetUidValue());
-                return uidAfter;
-            }
-            catch (Exception e)
-            {
-                if (e.InnerException != null)
+                Trace.TraceInformation("Invoke Update on ObjectClass: {0}/{1}", objectClass.GetObjectClassValue(), uid.GetUidValue());
+                try
                 {
-                    throw e.InnerException;
+                    Uid uidAfter = ExecuteUpdate(_configuration.UpdateScriptFileName, objectClass, uid, valuesToReplace, options);
+                    if (uidAfter == null)
+                        throw new ConnectorException("Update script didn't return with a valid uid (__UID__) value");
+                    Trace.TraceInformation("{0}:{1} updated", objectClass.GetObjectClassValue(), uidAfter.GetUidValue());
+                    return uidAfter;
                 }
-                throw;
+                catch (Exception e)
+                {
+                    if (e.InnerException != null)
+                    {
+                        throw e.InnerException;
+                    }
+                    throw;
+                }
             }
-
+            throw new NotImplementedException("Update script is not defined");
         }
 
         protected Uid ExecuteUpdate(String scriptName, ObjectClass objectClass, Uid uid,
-            ICollection<ConnectorAttribute> updateAttributes, OperationOptions options)
+            ICollection<ConnectorAttribute> attributes, OperationOptions options)
+        {
+            return GenericUpdate(scriptName, OperationType.UPDATE, objectClass, uid, attributes, options);
+        }
+
+        public Uid AddAttributeValues(ObjectClass objectClass, Uid uid, ICollection<ConnectorAttribute> valuesToAdd, OperationOptions options)
+        {
+            if (StringUtil.IsNotBlank(_configuration.UpdateScriptFileName))
+            {
+                Trace.TraceInformation("Invoke AddAttributeValues on ObjectClass: {0}/{1}", objectClass.GetObjectClassValue(), uid.GetUidValue());
+                try
+                {
+                    Uid uidAfter = ExecuteAddAttributeValues(_configuration.UpdateScriptFileName, objectClass, uid, valuesToAdd, options);
+                    if (uidAfter == null)
+                        throw new ConnectorException("Update script didn't return with a valid uid (__UID__) value");
+                    Trace.TraceInformation("{0}:{1} updated", objectClass.GetObjectClassValue(), uidAfter.GetUidValue());
+                    return uidAfter;
+                }
+                catch (Exception e)
+                {
+                    if (e.InnerException != null)
+                    {
+                        throw e.InnerException;
+                    }
+                    throw;
+                }
+            }
+            throw new NotImplementedException("Update script is not defined");
+        }
+
+        protected Uid ExecuteAddAttributeValues(String scriptName, ObjectClass objectClass, Uid uid,
+            ICollection<ConnectorAttribute> attributes, OperationOptions options)
+        {
+            return GenericUpdate(scriptName, OperationType.ADD_ATTRIBUTE_VALUES, objectClass, uid, attributes, options);
+        }
+
+        public Uid RemoveAttributeValues(ObjectClass objectClass, Uid uid, ICollection<ConnectorAttribute> valuesToRemove, OperationOptions options)
+        {
+            if (StringUtil.IsNotBlank(_configuration.UpdateScriptFileName))
+            {
+                Trace.TraceInformation("Invoke RemoveAttributeValues on ObjectClass: {0}/{1}", objectClass.GetObjectClassValue(), uid.GetUidValue());
+                try
+                {
+                    Uid uidAfter = ExecuteRemoveAttributeValues(_configuration.UpdateScriptFileName, objectClass, uid, valuesToRemove, options);
+                    if (uidAfter == null)
+                        throw new ConnectorException("Update script didn't return with a valid uid (__UID__) value");
+                    Trace.TraceInformation("{0}:{1} updated", objectClass.GetObjectClassValue(), uidAfter.GetUidValue());
+                    return uidAfter;
+                }
+                catch (Exception e)
+                {
+                    if (e.InnerException != null)
+                    {
+                        throw e.InnerException;
+                    }
+                    throw;
+                }
+            }
+            throw new NotImplementedException("Update script is not defined");
+        }
+
+        protected Uid ExecuteRemoveAttributeValues(String scriptName, ObjectClass objectClass, Uid uid,
+            ICollection<ConnectorAttribute> attributes, OperationOptions options)
+        {
+            return GenericUpdate(scriptName, OperationType.REMOVE_ATTRIBUTE_VALUES, objectClass, uid, attributes, options);
+        }
+
+        protected Uid GenericUpdate(String scriptName, OperationType operation, ObjectClass objectClass, Uid uid,
+            ICollection<ConnectorAttribute> attributes, OperationOptions options)
         {
             var result = new MsPowerShellUidHandler { Uid = uid };
             var arguments = new Dictionary<String, Object>
@@ -463,7 +532,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                 {Result, result},
             };
 
-            ExecuteScript(GetScript(scriptName), CreateBinding(arguments, OperationType.UPDATE, objectClass, uid, updateAttributes, options));
+            ExecuteScript(GetScript(scriptName), CreateBinding(arguments, operation, objectClass, uid, attributes, options));
             return result.Uid.GetUidValue() != null ? result.Uid : null;
         }
 
@@ -712,6 +781,6 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 
         #endregion
 
-        
+
     }
 }
