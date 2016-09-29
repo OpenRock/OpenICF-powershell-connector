@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Org.IdentityConnectors.Framework.Common;
 using Org.IdentityConnectors.Framework.Common.Exceptions;
@@ -32,7 +33,7 @@ using Org.IdentityConnectors.Framework.Spi;
 
 namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 {
-    class MsPowerShellSearchResults
+    internal class MsPowerShellSearchResults
     {
         private readonly ObjectClass _objectClass;
         private readonly ResultsHandler _handler;
@@ -45,35 +46,35 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 
         public void Complete()
         {
-            ((SearchResultsHandler)_handler).HandleResult(new SearchResult(null, -1));
+            ((SearchResultsHandler) _handler).HandleResult(new SearchResult(null, -1));
         }
 
-        public void Complete(String searchResult)
+        public void Complete(string searchResult)
         {
-            String cookie = null;
-            if (!String.IsNullOrEmpty(searchResult))
+            string cookie = null;
+            if (!string.IsNullOrEmpty(searchResult))
             {
                 cookie = searchResult;
             }
-            ((SearchResultsHandler)_handler).HandleResult(new SearchResult(cookie, -1));
+            ((SearchResultsHandler) _handler).HandleResult(new SearchResult(cookie, -1));
         }
 
         public void Complete(SearchResult searchResult)
         {
-            String cookie = null;
+            string cookie = null;
             int pages = -1;
             if (searchResult != null)
             {
-                if (!String.IsNullOrEmpty(searchResult.PagedResultsCookie))
+                if (!string.IsNullOrEmpty(searchResult.PagedResultsCookie))
                 {
-                    cookie = searchResult.PagedResultsCookie;    
+                    cookie = searchResult.PagedResultsCookie;
                 }
                 pages = searchResult.RemainingPagedResults;
             }
-            ((SearchResultsHandler)_handler).HandleResult(new SearchResult(cookie, pages));
+            ((SearchResultsHandler) _handler).HandleResult(new SearchResult(cookie, pages));
         }
 
-        public Object Process(Object result)
+        public object Process(object result)
         {
             if (result == null)
             {
@@ -82,12 +83,12 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 
             if (result is ConnectorObject)
             {
-                return _handler.Handle(result as ConnectorObject);
+                return _handler.Handle((ConnectorObject) result);
             }
 
             var cobld = new ConnectorObjectBuilder();
             var res = result as Hashtable;
-            foreach (String key in res.Keys)
+            foreach (string key in res.Keys)
             {
                 var attrName = key;
                 var attrValue = res[key];
@@ -109,27 +110,63 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                 }
                 else
                 {
-                    if (attrValue == null)
-                    {
-                        cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName));
-                    }
-                    else if (attrValue.GetType() == typeof(Object[]) || attrValue.GetType() == typeof(System.Collections.ICollection))
-                    {
-                        var list = new Collection<object>();
-                        foreach (var val in (ICollection)attrValue)
-                        {
-                            list.Add(FrameworkUtil.IsSupportedAttributeType(val.GetType()) ? val : val.ToString());
-                        }
-                        cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName, list));
-                    }
-                    else
-                    {
-                        cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName, attrValue));
-                    }
+                    cobld.AddAttribute(FormatAndBuildAttribute(attrName, attrValue));
                 }
             }
             cobld.ObjectClass = _objectClass;
             return _handler.Handle(cobld.Build());
+        }
+
+        internal static ConnectorAttribute FormatAndBuildAttribute(string name, object value)
+        {
+            if (value == null)
+            {
+                return ConnectorAttributeBuilder.Build(name);
+            }
+            else if (value.GetType() == typeof(object[]) || value.GetType() == typeof(ICollection))
+            {
+                var list = new Collection<object>();
+                foreach (var val in (ICollection) value)
+                {
+                    if (val == null) continue;
+                    // HashTable is a common PowerShell type.
+                    // It needs to be converted to IDictionary 
+                    // to be a supported ICF type
+                    if (val.GetType() == typeof(Hashtable))
+                    {
+                        list.Add(HashTableToIDictionary(val as Hashtable));
+                    }
+                    else
+                    {
+                        // Make sure we have a supported type or serialization will fail
+                        // Default to String representation otherwise
+                        list.Add(FrameworkUtil.IsSupportedAttributeType(val.GetType())
+                            ? val
+                            : val.ToString());
+                    }
+                }
+                return ConnectorAttributeBuilder.Build(name, list);
+            }
+            else
+            {
+                return ConnectorAttributeBuilder.Build(name, FrameworkUtil.IsSupportedAttributeType(value.GetType())
+                    ? value
+                    : value.ToString());
+            }
+        }
+
+        private static IDictionary<string, Object> HashTableToIDictionary(Hashtable hash)
+        {
+            IDictionary<string, object> dic = new Dictionary<string, object>();
+            foreach (string key in hash.Keys)
+            {
+                if (hash[key] == null) continue;
+                var value = FrameworkUtil.IsSupportedAttributeType(hash[key].GetType())
+                    ? hash[key]
+                    : hash[key].ToString();
+                dic.Add(key, value);
+            }
+            return dic;
         }
     }
 }

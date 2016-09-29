@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -21,16 +21,15 @@
  * your own identifying information:
  * "Portions Copyrighted [year] [name of copyright owner]"
  */
+
 using System;
 using System.Collections;
-using System.Collections.ObjectModel;
-using Org.IdentityConnectors.Framework.Common;
 using Org.IdentityConnectors.Framework.Common.Objects;
 using Org.IdentityConnectors.Framework.Spi;
 
 namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 {
-    class MsPowerShellSyncResults
+    internal class MsPowerShellSyncResults
     {
         protected static String ObjectClassKeyName = "ObjectClass";
         protected static String UidKeyName = "Uid";
@@ -53,12 +52,12 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         /// without any special object to sync.
         /// </summary>
         /// <param name="newToken"></param>
-        public void Complete(Object newToken)
+        public void Complete(object newToken)
         {
             if (newToken is SyncToken)
-                ((SyncTokenResultsHandler)_handler).HandleResult(newToken as SyncToken);
-            else if (newToken != null) 
-                ((SyncTokenResultsHandler)_handler).HandleResult(new SyncToken(newToken));
+                ((SyncTokenResultsHandler) _handler).HandleResult((SyncToken) newToken);
+            else if (newToken != null)
+                ((SyncTokenResultsHandler) _handler).HandleResult(new SyncToken(newToken));
         }
 
         /// <summary>
@@ -66,7 +65,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         /// </summary>
         /// <param name="result"></param>
         /// <returns></returns>
-        public Object Process(SyncDelta result)
+        public object Process(SyncDelta result)
         {
             return _handler.Handle(result);
         }
@@ -87,7 +86,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         /// </remarks>
         /// <param name="result"></param>
         /// <returns></returns>
-        public Object Process(Hashtable result)
+        public object Process(Hashtable result)
         {
             var syncbld = new SyncDeltaBuilder();
             var cobld = new ConnectorObjectBuilder();
@@ -97,39 +96,46 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             // Mandatory here
             if (result.ContainsKey(SyncTokenKeyName))
             {
-                syncbld.Token = result[SyncTokenKeyName] == null ? new SyncToken(0L) : new SyncToken(result[SyncTokenKeyName]);
+                syncbld.Token = result[SyncTokenKeyName] == null
+                    ? new SyncToken(0L)
+                    : new SyncToken(result[SyncTokenKeyName]);
             }
             else
+            {
                 throw new ArgumentException("SyncToken is missing in Sync result");
+            }
 
             // SyncDelta
             // Mandatory here
-            if (isValidKeyAndValue(result,DeltaTypeKeyName))
+            if (IsValidKeyAndValue(result, DeltaTypeKeyName))
             {
-                var op = result[DeltaTypeKeyName];
-                if (SyncDeltaType.CREATE.ToString().Equals(op as String, StringComparison.OrdinalIgnoreCase))
+                var op = result[DeltaTypeKeyName] as string;
+                if (SyncDeltaType.CREATE.ToString().Equals(op, StringComparison.OrdinalIgnoreCase))
                     syncbld.DeltaType = SyncDeltaType.CREATE;
-                else if (SyncDeltaType.UPDATE.ToString().Equals(op as String, StringComparison.OrdinalIgnoreCase))
+                else if (SyncDeltaType.UPDATE.ToString().Equals(op, StringComparison.OrdinalIgnoreCase))
                     syncbld.DeltaType = SyncDeltaType.UPDATE;
-                else if (SyncDeltaType.DELETE.ToString().Equals(op as String, StringComparison.OrdinalIgnoreCase))
+                else if (SyncDeltaType.DELETE.ToString().Equals(op, StringComparison.OrdinalIgnoreCase))
                     syncbld.DeltaType = SyncDeltaType.DELETE;
-                else if (SyncDeltaType.CREATE_OR_UPDATE.ToString().Equals(op as String, StringComparison.OrdinalIgnoreCase))
+                else if (SyncDeltaType.CREATE_OR_UPDATE.ToString().Equals(op, StringComparison.OrdinalIgnoreCase))
                     syncbld.DeltaType = SyncDeltaType.CREATE_OR_UPDATE;
                 else
                     throw new ArgumentException("Unrecognized DeltaType in Sync result");
             }
             else
+            {
                 throw new ArgumentException("DeltaType is missing in Sync result");
+            }
 
             // Uid 
             // Mandatory
-            if (isValidKeyAndValue(result, UidKeyName))
+            if (IsValidKeyAndValue(result, UidKeyName))
             {
                 var value = result[UidKeyName];
-                if (value is String)
+                if (value is string)
                 {
-                    uid = new Uid(value as String);
-                } else if (value is Uid)
+                    uid = new Uid(value as string);
+                }
+                else if (value is Uid)
                 {
                     uid = value as Uid;
                 }
@@ -147,13 +153,13 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 
             // PreviousUid 
             // Not valid if DELETE
-            if (isValidKeyAndValue(result, PreviousUidKeyName))
+            if (IsValidKeyAndValue(result, PreviousUidKeyName))
             {
                 var value = result[PreviousUidKeyName];
                 Uid previousUid;
-                if (value is String)
+                if (value is string)
                 {
-                    previousUid = new Uid(value as String);
+                    previousUid = new Uid(value as string);
                 }
                 else if (value is Uid)
                 {
@@ -177,41 +183,33 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                 var attrs = result[ConnectorObjectKeyName] as Hashtable;
 
                 if (!attrs.ContainsKey(Name.NAME))
+                {
                     throw new ArgumentException("The Object must contain a Name");
-
+                }
                 foreach (DictionaryEntry attr in attrs)
                 {
-                    var attrName = attr.Key as String;
+                    var attrName = attr.Key as string;
                     var attrValue = attr.Value;
 
                     if (Name.NAME.Equals(attrName))
-                        cobld.SetName(attrValue as String);
+                    {
+                        cobld.SetName(attrValue as string);
+                    }
                     else if (Uid.NAME.Equals((attrName)))
                     {
                         if (!uid.GetUidValue().Equals(attrValue))
+                        {
                             throw new ArgumentException("Uid from Object is different than Uid from Sync result");
+                        }
                     }
                     else if (OperationalAttributes.ENABLE_NAME.Equals((attrName)))
-                        cobld.AddAttribute(ConnectorAttributeBuilder.BuildEnabled(attr.Value is bool && (bool) attr.Value));
+                    {
+                        cobld.AddAttribute(
+                            ConnectorAttributeBuilder.BuildEnabled(attr.Value is bool && (bool) attr.Value));
+                    }
                     else
                     {
-                        if (attrValue == null)
-                        {
-                            cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName));
-                        }
-                        else if (attrValue.GetType() == typeof(Object[]) || attrValue.GetType() == typeof(System.Collections.ICollection))
-                        {
-                            var list = new Collection<object>();
-                            foreach (var val in (ICollection)attrValue)
-                            {
-                                list.Add(FrameworkUtil.IsSupportedAttributeType(val.GetType()) ? val : val.ToString());
-                            }
-                            cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName, list));
-                        }
-                        else
-                        {
-                            cobld.AddAttribute(ConnectorAttributeBuilder.Build(attrName, attrValue));
-                        }
+                        cobld.AddAttribute(MsPowerShellSearchResults.FormatAndBuildAttribute(attrName, attrValue));
                     }
                 }
                 cobld.ObjectClass = _objectClass;
@@ -219,16 +217,16 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             }
             // If operation is DELETE and the ConnectorObject is null,
             // we need to set the ObjectClass at the SyncDelta level
-            else if ((SyncDeltaType.DELETE == syncbld.DeltaType) && isValidKeyAndValue(result, ObjectClassKeyName))
+            else if ((SyncDeltaType.DELETE == syncbld.DeltaType) && IsValidKeyAndValue(result, ObjectClassKeyName))
             {
                 var objclass = result[ObjectClassKeyName];
                 if (objclass is ObjectClass)
                 {
                     syncbld.ObjectClass = objclass as ObjectClass;
                 }
-                else if (objclass is String) 
+                else if (objclass is string)
                 {
-                    syncbld.ObjectClass = new ObjectClass(objclass as String);
+                    syncbld.ObjectClass = new ObjectClass(objclass as string);
                 }
                 else
                 {
@@ -244,9 +242,9 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         }
 
         // check Key and Value
-        private Boolean isValidKeyAndValue(Hashtable hash, String key)
+        private static bool IsValidKeyAndValue(Hashtable hash, string key)
         {
-            return (hash.ContainsKey(key) && !String.IsNullOrEmpty(hash[key] as String));
+            return (hash.ContainsKey(key) && !string.IsNullOrEmpty(hash[key] as string));
         }
     }
 }

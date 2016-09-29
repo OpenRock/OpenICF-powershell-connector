@@ -81,15 +81,12 @@ filter Process-Groups {
 		{
 			$list = @()
 			Get-MsolGroupMember -All -GroupObjectId $result["__UID__"] | foreach {
-				# ICF supports only Dictionary<Object, Object>
-				# Using Powershell standard @{} hashmap will fail...
-				# See https://bugster.forgerock.org/jira/browse/OPENICF-523
-				$dict = New-Object 'System.Collections.Generic.Dictionary[String,String]'
-				$dict.Add("ObjectId", $_.ObjectId)
-				$dict.Add("GroupMemberType", $_.GroupMemberType)
-				$dict.Add("DisplayName", $_.DisplayName)
-				$dict.Add("EmailAddress", $_.EmailAddress)
-				$list += [System.Collections.Generic.IDictionary[String,String]]($dict)
+				$hash = @{}
+				$hash.Add("ObjectId", $_.ObjectId)
+				$hash.Add("GroupMemberType", $_.GroupMemberType)
+				$hash.Add("DisplayName", $_.DisplayName)
+				$hash.Add("EmailAddress", $_.EmailAddress)
+				$list += $hash
 			}
 			Write-verbose "Group contains $($list.Count) members"
 			$result.Add("__MEMBERS__",$list)
