@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -1036,6 +1036,28 @@ namespace MSPowerShellConnectorTests
 
         [Test]
         [Category("Update")]
+        public void TestUpdateAddValues()
+        {
+            Uid uid = CreateTestUser("TESTOK02");
+            var updateAttributes = new List<ConnectorAttribute>(1);
+            updateAttributes.Add(ConnectorAttributeBuilder.Build("email", "foo@example.com"));
+            
+            uid = GetFacade().AddAttributeValues(ObjectClass.ACCOUNT, uid, updateAttributes, null);
+        }
+
+        [Test]
+        [Category("Update")]
+        public void TestUpdateRemoveValues()
+        {
+            Uid uid = CreateTestUser("TESTOK03");
+            var updateAttributes = new List<ConnectorAttribute>(1);
+            updateAttributes.Add(ConnectorAttributeBuilder.Build("email", "foo@example.com"));
+
+            uid = GetFacade().RemoveAttributeValues(ObjectClass.ACCOUNT, uid, updateAttributes, null);
+        }
+
+        [Test]
+        [Category("Update")]
         [ExpectedException(typeof(InvalidAttributeValueException), ExpectedMessage = "Expecting non null value")]
 
         public void TestUpdateFailEmpty()
@@ -1080,8 +1102,10 @@ namespace MSPowerShellConnectorTests
         public void TestUpdateFailReadOnly()
         {
             Uid uid = CreateTestUser("FAIL04");
-            var updateAttributes = new List<ConnectorAttribute>(1);
-            updateAttributes.Add(ConnectorAttributeBuilder.Build("lastModified", "newValue"));
+            var updateAttributes = new List<ConnectorAttribute>(1)
+            {
+                ConnectorAttributeBuilder.Build("lastModified", "newValue")
+            };
 
             uid = GetFacade().Update(ObjectClass.ACCOUNT, uid, updateAttributes, null);
             Assert.Fail("Connector operation should fail");
