@@ -123,7 +123,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             {
                 return ConnectorAttributeBuilder.Build(name);
             }
-            else if (value.GetType() == typeof(object[]) || value.GetType() == typeof(ICollection))
+            else if (value is object[] || value is ICollection)
             {
                 var list = new Collection<object>();
                 foreach (var val in (ICollection) value)
