@@ -63,7 +63,78 @@
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
-$secutil    = [Org.IdentityConnectors.Common.Security.SecurityUtil]
+$secutil = [Org.IdentityConnectors.Common.Security.SecurityUtil]
+
+function Build-Group-Member ($member)
+{
+	$params =  @{"GroupObjectId" = $Connector.Uid.GetUidValue()}
+
+	if ($member.ContainsKey('ObjectId'))
+	{
+		$params.Add("GroupMemberObjectId", $member["ObjectId"] )
+		if ($member.ContainsKey('GroupMemberType'))
+		{
+			if (($member["GroupMemberType"] -eq "User" ) -or ($member["GroupMemberType"] -eq "Group" ))
+			{
+				$params.Add("GroupMemberType", $member["GroupMemberType"])
+			}
+			else
+			{
+				Write-warning "Member has a bad GroupMemberType defined: $($member.GroupMemberType)"
+				throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.InvalidAttributeValueException("Member has a bad GroupMemberType defined: $($member.GroupMemberType)")
+			}
+		}
+		else 
+		{
+			# We assume User as the default
+			$params.Add("GroupMemberType", "User")
+		}
+	}
+	else 
+	{
+		Write-warning "Member has no ObjectId defined"
+		throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.InvalidAttributeValueException("Member has no ObjectId defined")
+	}
+	return $params
+}
+
+function Add-Attributes-Group ($attributes)
+{
+	$accessor = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributesAccessor($attributes)
+	$members = $accessor.FindList("__MEMBERS__")
+
+	# Patch members
+	# According to https://msdn.microsoft.com/en-us/library/dn194129.aspx
+	# Add-MsolGroupMember -GroupMemberObjectId <Guid> -GroupObjectId <Guid> [-GroupMemberType <string>] [-TenantId <Guid>] [<CommonParameters>]
+	if ($null -ne $members)
+	{
+		Write-verbose "$($members.Count) member(s) to add"
+		foreach ($member in $members)
+		{
+			$add = Build-Group-Member $member
+			Add-MsolGroupMember @add
+		}
+	}
+}
+
+function Remove-Attributes-Group ($attributes)
+{
+	$accessor = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributesAccessor($attributes)
+	$members = $accessor.FindList("__MEMBERS__")
+
+	# Patch members
+	# According to https://msdn.microsoft.com/en-us/library/dn194107.aspx
+	# Remove-MsolGroupMember -GroupObjectId <Guid> [-GroupMemberObjectId <Guid>] [-GroupMemberType <string>] [-TenantId <Guid>] [<CommonParameters>]
+	if ($null -ne $members)
+	{
+		Write-verbose "$($members.Count) member(s) to remove"
+		foreach ($member in $members)
+		{
+			$remove = Build-Group-Member $member
+			Remove-MsolGroupMember @remove
+		}
+	}
+}
 
 function Update-Group ($attributes)
 {
@@ -85,31 +156,8 @@ function Update-Group ($attributes)
 		$newMembers = @{}
 		foreach ($member in $members)
 		{
-			if ($member.ContainsKey('ObjectId'))
-			{
-				if ($member.ContainsKey('GroupMemberType'))
-				{
-					if (($member["GroupMemberType"] -eq "User" ) -or ($member["GroupMemberType"] -eq "Group" ))
-					{
-						$newMembers.Add($member["ObjectId"], $member["GroupMemberType"])
-					}
-					else
-					{
-						Write-warning "Member has a bad GroupMemberType defined: $($member.GroupMemberType)"
-						throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.InvalidAttributeValueException("Member has a bad GroupMemberType defined: $($member.GroupMemberType)")
-					}
-				}
-				else 
-				{
-					# We assume User as the default
-					$newMembers.Add($member["ObjectId"], "User")
-				}
-			}
-			else 
-			{
-				Write-warning "Member has no ObjectId defined"
-				throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.InvalidAttributeValueException("Member has no ObjectId defined")
-			}
+			$validMember = Build-Group-Member $member
+			$newMembers.Add($validMember["ObjectId"], $validMember["GroupMemberType"])
 		}
 		# First we need to get the current list of members
 		# and track their type (user/group) as well
@@ -170,6 +218,16 @@ function Update-Group ($attributes)
 	}
 	# We return the original __UID__ since no change
 	$Connector.Uid
+}
+
+function Add-Attributes-User ($attributes)
+{
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation) for __ACCOUNT__ type")
+}
+
+function Remove-Attributes-User ($attributes)
+{
+	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation) for __ACCOUNT__ type")
 }
 
 function Update-User ($attributes)
@@ -294,8 +352,7 @@ function Update-User ($attributes)
 
 try
 {
-if ($Connector.Operation -eq "UPDATE")
-{
+	# If no session exists, we create one and set an env variable as a flag.
 	if (!$Env:OpenICF_AAD) {
 		$msolcred = New-object System.Management.Automation.PSCredential $Connector.Configuration.Login, $Connector.Configuration.Password.ToSecureString()
 		connect-msolservice -credential $msolcred
@@ -303,26 +360,68 @@ if ($Connector.Operation -eq "UPDATE")
 		Write-Verbose -verbose "New session created"
 	}
 
-	switch ($Connector.ObjectClass.Type)
+	switch ($Connector.Operation)
 	{
-		"__ACCOUNT__"
+		"UPDATE"
 		{
-			$Connector.Result.Uid = Update-User $Connector.Attributes
+			switch ($Connector.ObjectClass.Type)
+			{
+				"__ACCOUNT__"
+				{
+					$Connector.Result.Uid = Update-User $Connector.Attributes
+				}
+				"__GROUP__" 
+				{
+					$Connector.Result.Uid = Update-Group $Connector.Attributes
+				}
+				default
+				{
+					throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
+				}
+			}
+
 		}
-		"__GROUP__" 
+		"ADD_ATTRIBUTE_VALUES"
 		{
-			$Connector.Result.Uid = Update-Group $Connector.Attributes
+			switch ($Connector.ObjectClass.Type)
+			{
+				"__ACCOUNT__"
+				{
+					$Connector.Result.Uid = Add-Attributes-User $Connector.Attributes
+				}
+				"__GROUP__" 
+				{
+					$Connector.Result.Uid = Add-Attributes-Group $Connector.Attributes
+				}
+				default
+				{
+					throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
+				}
+			}
+		}
+		"REMOVE_ATTRIBUTE_VALUES"
+		{
+			switch ($Connector.ObjectClass.Type)
+			{
+				"__ACCOUNT__"
+				{
+					$Connector.Result.Uid = Remove-Attributes-User $Connector.Attributes
+				}
+				"__GROUP__" 
+				{
+					$Connector.Result.Uid = Remove-Attributes-Group $Connector.Attributes
+				}
+				default
+				{
+					throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
+				}
+			}
 		}
 		default
 		{
-			throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("Unsupported type: $($Connector.ObjectClass.Type)")	
+			throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation)")
 		}
 	}
-}
-else
-{
-	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation)")
-}
 }
 catch #Re-throw the original exception message within a connector exception
 {
