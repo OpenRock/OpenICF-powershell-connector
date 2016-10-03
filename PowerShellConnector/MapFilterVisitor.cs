@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -29,104 +29,144 @@ using Org.IdentityConnectors.Framework.Common.Objects.Filters;
 
 namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 {
-    public class MapFilterVisitor : FilterVisitor<Dictionary<String, Object>, Hashtable>
+    public class MapFilterVisitor : FilterVisitor<Dictionary<string, Object>, Dictionary<string, string>>
     {
-        private const String Not = "Not";
-        private const String Operation = "Operation";
-        private const String Left = "Left";
-        private const String Right = "Right";
-        private const String And = "And";
-        private const String Or = "Or";
+        private const string Not = "Not";
+        private const string Operation = "Operation";
+        private const string Left = "Left";
+        private const string Right = "Right";
+        private const string And = "And";
+        private const string Or = "Or";
 
-        public Dictionary<string, object> VisitAndFilter(Hashtable p, AndFilter filter)
+        public Dictionary<string, object> VisitAndFilter(Dictionary<string, string> p, AndFilter filter)
         {
-            var dic = new Dictionary<String, Object>
+            var dic = new Dictionary<string, object>
             {
                 {Not, false},
-                {Left, filter.Left.Accept<Dictionary<String, Object>, Hashtable>(this, p)},
-                {Right, filter.Right.Accept<Dictionary<String, Object>, Hashtable>(this, p)},
+                {Left, filter.Left.Accept<Dictionary<string, object>, Dictionary<string, string>>(this, p)},
+                {Right, filter.Right.Accept<Dictionary<string, object>, Dictionary<string, string>>(this, p)},
                 {Operation, And}
             };
             return dic;
         }
 
-        public Dictionary<string, object> VisitContainsFilter(Hashtable p, ContainsFilter filter)
+        public Dictionary<string, object> VisitContainsFilter(Dictionary<string, string> p, ContainsFilter filter)
         {
-            return CreateMap("CONTAINS", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("CONTAINS", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitContainsAllValuesFilter(Hashtable p, ContainsAllValuesFilter filter)
+        public Dictionary<string, object> VisitContainsAllValuesFilter(Dictionary<string, string> p, ContainsAllValuesFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public Dictionary<string, object> VisitEqualsFilter(Hashtable p, EqualsFilter filter)
+        public Dictionary<string, object> VisitEqualsFilter(Dictionary<string, string> p, EqualsFilter filter)
         {
+            string name = filter.GetAttribute().Name;
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
             var values = filter.GetAttribute().Value;
             if (values.Count == 1)
             {
-                return CreateMap("EQUALS", filter.GetAttribute().Name, values[0]);
+                return CreateMap("EQUALS", name, values[0]);
             }
             throw new NotImplementedException("Equality visitor does not implement multi value attribute");
         }
 
-        public Dictionary<string, object> VisitExtendedFilter(Hashtable p, Filter filter)
+        public Dictionary<string, object> VisitExtendedFilter(Dictionary<string, string> p, Filter filter)
         {
             throw new NotImplementedException();
         }
 
-        public Dictionary<string, object> VisitGreaterThanFilter(Hashtable p, GreaterThanFilter filter)
+        public Dictionary<string, object> VisitGreaterThanFilter(Dictionary<string, string> p, GreaterThanFilter filter)
         {
-            return CreateMap("GREATERTHAN", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("GREATERTHAN", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitGreaterThanOrEqualFilter(Hashtable p, GreaterThanOrEqualFilter filter)
+        public Dictionary<string, object> VisitGreaterThanOrEqualFilter(Dictionary<string, string> p, GreaterThanOrEqualFilter filter)
         {
-            return CreateMap("GREATERTHANOREQUAL", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("GREATERTHANOREQUAL", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitLessThanFilter(Hashtable p, LessThanFilter filter)
+        public Dictionary<string, object> VisitLessThanFilter(Dictionary<string, string> p, LessThanFilter filter)
         {
-            return CreateMap("LESSTHAN", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("LESSTHAN", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitLessThanOrEqualFilter(Hashtable p, LessThanOrEqualFilter filter)
+        public Dictionary<string, object> VisitLessThanOrEqualFilter(Dictionary<string, string> p, LessThanOrEqualFilter filter)
         {
-            return CreateMap("LESSTHANOREQUAL", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("LESSTHANOREQUAL", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitNotFilter(Hashtable p, NotFilter filter)
+        public Dictionary<string, object> VisitNotFilter(Dictionary<string, string> p, NotFilter filter)
         {
-            var dic = filter.Accept<Dictionary<String, Object>, Hashtable>(this, p);
+            var dic = filter.Accept<Dictionary<string, object>, Dictionary<string, string>>(this, p);
             dic[Not] = true;
             return dic;
         }
 
-        public Dictionary<string, object> VisitOrFilter(Hashtable p, OrFilter filter)
+        public Dictionary<string, object> VisitOrFilter(Dictionary<string, string> p, OrFilter filter)
         {
-            var dic = new Dictionary<String, Object>
+            var dic = new Dictionary<string, object>
             {
                 {Not, false},
-                {Left, filter.Left.Accept<Dictionary<String, Object>, Hashtable>(this, p)},
-                {Right, filter.Right.Accept<Dictionary<String, Object>, Hashtable>(this, p)},
+                {Left, filter.Left.Accept<Dictionary<string, object>, Dictionary<string, string>>(this, p)},
+                {Right, filter.Right.Accept<Dictionary<string, object>, Dictionary<string, string>>(this, p)},
                 {Operation, Or}
             };
             return dic;
         }
 
-        public Dictionary<string, object> VisitStartsWithFilter(Hashtable p, StartsWithFilter filter)
+        public Dictionary<string, object> VisitStartsWithFilter(Dictionary<string, string> p, StartsWithFilter filter)
         {
-            return CreateMap("STARTSWITH", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("STARTSWITH", name, filter.GetValue());
         }
 
-        public Dictionary<string, object> VisitEndsWithFilter(Hashtable p, EndsWithFilter filter)
+        public Dictionary<string, object> VisitEndsWithFilter(Dictionary<string, string> p, EndsWithFilter filter)
         {
-            return CreateMap("ENDSWITH", filter.GetName(), filter.GetValue());
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return CreateMap("ENDSWITH", name, filter.GetValue());
         }
 
-        private static Dictionary<String, Object> CreateMap(String operation, String name, Object value)
+        private static Dictionary<string, object> CreateMap(string operation, string name, object value)
         {
-            var dic = new Dictionary<String, Object>();
+            var dic = new Dictionary<string, object>();
             if (value == null)
             {
                 return null;

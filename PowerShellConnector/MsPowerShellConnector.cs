@@ -60,33 +60,33 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
     public class MsPowerShellConnector : PoolableConnector, TestOp, SearchOp<Filter>,
          CreateOp, UpdateAttributeValuesOp, DeleteOp, SyncOp, AuthenticateOp, ResolveUsernameOp, SchemaOp, ScriptOnConnectorOp
     {
-        protected static String Username = "Username";
-        protected static String Password = "Password";
-        protected static String Action = "Action";
-        protected static String OperationName = "Operation";
-        protected static String ObjectClassName = "ObjectClass";
-        protected static String Uid = "Uid";
-        protected static String Id = "Id";
-        protected static String Attributes = "Attributes";
-        protected static String Options = "Options";
-        protected static String Connection = "Connection";
-        protected static String SchemaBldr = "SchemaBuilder";
-        protected static String Configuration = "Configuration";
-        protected static String Logger = "Log";
-        protected static String Token = "Token";
-        protected static String Handler = "Handler";
-        protected static String Query = "Query";
-        protected static String Filter = "Filter";
-        protected static String Result = "Result";
-        protected static String ScriptArguments = "Arguments";
-        protected static String GuardedString = "GuardedString";
+        protected static string Username = "Username";
+        protected static string Password = "Password";
+        protected static string Action = "Action";
+        protected static string OperationName = "Operation";
+        protected static string ObjectClassName = "ObjectClass";
+        protected static string Uid = "Uid";
+        protected static string Id = "Id";
+        protected static string Attributes = "Attributes";
+        protected static string Options = "Options";
+        protected static string Connection = "Connection";
+        protected static string SchemaBldr = "SchemaBuilder";
+        protected static string Configuration = "Configuration";
+        protected static string Logger = "Log";
+        protected static string Token = "Token";
+        protected static string Handler = "Handler";
+        protected static string Query = "Query";
+        protected static string Filter = "Filter";
+        protected static string Result = "Result";
+        protected static string ScriptArguments = "Arguments";
+        protected static string GuardedString = "GuardedString";
         
         private MsPowerShellConfiguration _configuration;
         private MsPowerShellHost _psHost;
         private Schema _schema;
         private Visitors _visitor;
-        private String _scriptPrefix = "Connector";
-        private Hashtable _attrSubstitute;
+        private string _scriptPrefix = "Connector";
+        private Dictionary<string, string> _attrSubstitute;
 
 
         public enum Visitors
@@ -123,7 +123,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                 _psHost = _configuration.PsModulesToImport.Length > 0 ? new MsPowerShellHost(_configuration.PsModulesToImport) : new MsPowerShellHost();
             }
 
-            _attrSubstitute = new Hashtable();
+            _attrSubstitute = new Dictionary<string, string>();
             if (_configuration.SubstituteUidAndNameInQueryFilter)
             {
                 _attrSubstitute.Add("__UID__", _configuration.UidAttributeName);
@@ -359,7 +359,7 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             }
         }
 
-        protected void ExecuteQuery(String scriptName, ObjectClass objectClass, Filter query, ResultsHandler handler,
+        protected void ExecuteQuery(string scriptName, ObjectClass objectClass, Filter query, ResultsHandler handler,
             OperationOptions options)
         {
             var arguments = new Dictionary<String, Object>
@@ -371,13 +371,13 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
                 switch (_visitor)
                 {
                     case Visitors.Map:
-                        arguments.Add(Query, query.Accept<Dictionary<String, Object>, Hashtable>(new MapFilterVisitor(), _attrSubstitute));
+                        arguments.Add(Query, query.Accept<Dictionary<String, Object>, Dictionary<string, string>>(new MapFilterVisitor(), _attrSubstitute));
                         break;
                     case Visitors.AdPsModule:
-                        arguments.Add(Query, query.Accept<String, Hashtable>(new AdPsModuleFilterVisitor(), _attrSubstitute));
+                        arguments.Add(Query, query.Accept<String, Dictionary<string, string>>(new AdPsModuleFilterVisitor(), _attrSubstitute));
                         break;
                     case Visitors.Ldap:
-                        arguments.Add(Query, query.Accept<String, Hashtable>(new LdapFilterVisitor(), _attrSubstitute));
+                        arguments.Add(Query, query.Accept<String, Dictionary<string, string>>(new LdapFilterVisitor(), _attrSubstitute));
                         break;
                     case Visitors.NativeQuery:
                         arguments.Add(Query, query);

@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -24,12 +24,12 @@
 
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using Org.IdentityConnectors.Framework.Common.Objects.Filters;
 
 namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 {
-    class AdPsModuleFilterVisitor : FilterVisitor<String, Hashtable>
+    class AdPsModuleFilterVisitor : FilterVisitor<string, Dictionary<string, string>>
     {
         /// <summary>
         /// AndFilter
@@ -37,181 +37,179 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitAndFilter(Hashtable p, AndFilter filter)
+        public string VisitAndFilter(Dictionary<string, string> p, AndFilter filter)
         {
-            var l = filter.Left.Accept<String, Hashtable>(this, p);
-            var r = filter.Right.Accept<String, Hashtable>(this, p);
-            return string.Format("{0} -and {1}", l, r);
+            var l = filter.Left.Accept<string, Dictionary<string, string>>(this, p);
+            var r = filter.Right.Accept<string, Dictionary<string, string>>(this, p);
+            return String.Format("{0} -and {1}", l, r);
         }
 
         /// <summary>
-        /// 
+        /// VisitContainsFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitContainsFilter(Hashtable p, ContainsFilter filter)
+        public string VisitContainsFilter(Dictionary<string, string> p, ContainsFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -like \"{1}{2}{3}\"", name2, "*", filter.GetValue(), "*");
+            return String.Format("{0} -like \"{1}{2}{3}\"", name, "*", filter.GetValue(), "*");
         }
 
-        public string VisitContainsAllValuesFilter(Hashtable p, ContainsAllValuesFilter filter)
+        public string VisitContainsAllValuesFilter(Dictionary<string, string> p, ContainsAllValuesFilter filter)
         {
             throw new NotImplementedException();
         }
 
         /// <summary>
-        /// 
+        /// VisitEqualsFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <exception cref="NotImplementedException"></exception>
         /// <returns></returns>
-        public string VisitEqualsFilter(Hashtable p, EqualsFilter filter)
+        public string VisitEqualsFilter(Dictionary<string, string> p, EqualsFilter filter)
         {
-            var name = filter.GetAttribute().Name;
-            var name2 = name as String;
+            string name = filter.GetAttribute().Name;
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
             var values = filter.GetAttribute().Value;
             if (values.Count == 1)
             {
-                return string.Format("{0} -eq \"{1}\"", name2, values[0]);
+                return String.Format("{0} -eq \"{1}\"", name, values[0]);
             }
             throw new NotImplementedException("Equality visitor does not implement multi value attributes");
         }
 
-        public string VisitExtendedFilter(Hashtable p, Filter filter)
+        public string VisitExtendedFilter(Dictionary<string, string> p, Filter filter)
         {
             throw new NotImplementedException();
         }
 
         /// <summary>
-        /// 
+        /// VisitGreaterThanFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitGreaterThanFilter(Hashtable p, GreaterThanFilter filter)
+        public string VisitGreaterThanFilter(Dictionary<string, string> p, GreaterThanFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -gt {1}", name2, filter.GetValue());
+            return String.Format("{0} -gt {1}", name, filter.GetValue());
         }
 
         /// <summary>
-        /// 
+        /// VisitGreaterThanOrEqualFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitGreaterThanOrEqualFilter(Hashtable p, GreaterThanOrEqualFilter filter)
+        public string VisitGreaterThanOrEqualFilter(Dictionary<string, string> p, GreaterThanOrEqualFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -ge {1}", name2, filter.GetValue());
+            return String.Format("{0} -ge {1}", name, filter.GetValue());
         }
 
         /// <summary>
-        /// 
+        /// VisitLessThanFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitLessThanFilter(Hashtable p, LessThanFilter filter)
+        public string VisitLessThanFilter(Dictionary<string, string> p, LessThanFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -lt {1}", name2, filter.GetValue());
+            return String.Format("{0} -lt {1}", name, filter.GetValue());
         }
 
         /// <summary>
-        /// 
+        /// VisitLessThanOrEqualFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitLessThanOrEqualFilter(Hashtable p, LessThanOrEqualFilter filter)
+        public string VisitLessThanOrEqualFilter(Dictionary<string, string> p, LessThanOrEqualFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -le {1}", name2, filter.GetValue());
-        }
-
-        public string VisitNotFilter(Hashtable p, NotFilter filter)
-        {
-            return string.Format("-not {0}", filter.Filter.Accept(this, p));
+            return String.Format("{0} -le {1}", name, filter.GetValue());
         }
 
         /// <summary>
-        /// 
+        /// VisitNotFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitOrFilter(Hashtable p, OrFilter filter)
+        public string VisitNotFilter(Dictionary<string, string> p, NotFilter filter)
         {
-            var l = filter.Left.Accept<String, Hashtable>(this, p);
-            var r = filter.Right.Accept<String, Hashtable>(this, p);
-            return string.Format("{0} -or {1}", l, r);
+            return String.Format("-not {0}", filter.Filter.Accept(this, p));
         }
 
         /// <summary>
-        /// 
+        /// VisitOrFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitStartsWithFilter(Hashtable p, StartsWithFilter filter)
+        public string VisitOrFilter(Dictionary<string, string> p, OrFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
-            if (p.ContainsKey(name))
-            {
-                name2 = p[name] as String;
-            }
-            return string.Format("{0} -like \"{1}{2}\"", name2, filter.GetValue(), "*");
+            var l = filter.Left.Accept<string, Dictionary<string, string>>(this, p);
+            var r = filter.Right.Accept<string, Dictionary<string, string>>(this, p);
+            return String.Format("{0} -or {1}", l, r);
         }
 
         /// <summary>
-        /// 
+        /// VisitStartsWithFilter
         /// </summary>
         /// <param name="p"></param>
         /// <param name="filter"></param>
         /// <returns></returns>
-        public string VisitEndsWithFilter(Hashtable p, EndsWithFilter filter)
+        public string VisitStartsWithFilter(Dictionary<string, string> p, StartsWithFilter filter)
         {
-            var name = filter.GetName();
-            var name2 = name as String;
+            string name = filter.GetName();
             if (p.ContainsKey(name))
             {
-                name2 = p[name] as String;
+                name = p[name];
             }
-            return string.Format("{0} -like \"{1}{2}\"", name2, "*", filter.GetValue());
+            return String.Format("{0} -like \"{1}{2}\"", name, filter.GetValue(), "*");
+        }
+
+        /// <summary>
+        /// VisitEndsWithFilter
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        public string VisitEndsWithFilter(Dictionary<string, string> p, EndsWithFilter filter)
+        {
+            string name = filter.GetName();
+            if (p.ContainsKey(name))
+            {
+                name = p[name];
+            }
+            return String.Format("{0} -like \"{1}{2}\"", name, "*", filter.GetValue());
         }
     }
 }

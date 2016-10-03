@@ -1,7 +1,7 @@
 ﻿/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright (c) 2014 ForgeRock AS. All Rights Reserved
+ * Copyright (c) 2014-2016 ForgeRock AS. All Rights Reserved
  *
  * The contents of this file are subject to the terms
  * of the Common Development and Distribution License
@@ -29,69 +29,69 @@ using Org.IdentityConnectors.Framework.Common.Objects.Filters;
 
 namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
 {
-    class LdapFilterVisitor : FilterVisitor<String, Hashtable>
+    class LdapFilterVisitor : FilterVisitor<String, Dictionary<string, string>>
     {
-        public string VisitAndFilter(Hashtable p, AndFilter filter)
+        public string VisitAndFilter(Dictionary<string, string> p, AndFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitContainsFilter(Hashtable p, ContainsFilter filter)
+        public string VisitContainsFilter(Dictionary<string, string> p, ContainsFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitContainsAllValuesFilter(Hashtable p, ContainsAllValuesFilter filter)
+        public string VisitContainsAllValuesFilter(Dictionary<string, string> p, ContainsAllValuesFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitEqualsFilter(Hashtable p, EqualsFilter filter)
+        public string VisitEqualsFilter(Dictionary<string, string> p, EqualsFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitExtendedFilter(Hashtable p, Filter filter)
+        public string VisitExtendedFilter(Dictionary<string, string> p, Filter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitGreaterThanFilter(Hashtable p, GreaterThanFilter filter)
+        public string VisitGreaterThanFilter(Dictionary<string, string> p, GreaterThanFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitGreaterThanOrEqualFilter(Hashtable p, GreaterThanOrEqualFilter filter)
+        public string VisitGreaterThanOrEqualFilter(Dictionary<string, string> p, GreaterThanOrEqualFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitLessThanFilter(Hashtable p, LessThanFilter filter)
+        public string VisitLessThanFilter(Dictionary<string, string> p, LessThanFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitLessThanOrEqualFilter(Hashtable p, LessThanOrEqualFilter filter)
+        public string VisitLessThanOrEqualFilter(Dictionary<string, string> p, LessThanOrEqualFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitNotFilter(Hashtable p, NotFilter filter)
+        public string VisitNotFilter(Dictionary<string, string> p, NotFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitOrFilter(Hashtable p, OrFilter filter)
+        public string VisitOrFilter(Dictionary<string, string> p, OrFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitStartsWithFilter(Hashtable p, StartsWithFilter filter)
+        public string VisitStartsWithFilter(Dictionary<string, string> p, StartsWithFilter filter)
         {
             throw new NotImplementedException();
         }
 
-        public string VisitEndsWithFilter(Hashtable p, EndsWithFilter filter)
+        public string VisitEndsWithFilter(Dictionary<string, string> p, EndsWithFilter filter)
         {
             throw new NotImplementedException();
         }
