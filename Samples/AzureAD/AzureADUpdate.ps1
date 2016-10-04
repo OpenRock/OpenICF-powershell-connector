@@ -157,7 +157,7 @@ function Update-Group ($attributes)
 		foreach ($member in $members)
 		{
 			$validMember = Build-Group-Member $member
-			$newMembers.Add($validMember["ObjectId"], $validMember["GroupMemberType"])
+			$newMembers.Add($validMember["GroupMemberObjectId"], $validMember["GroupMemberType"])
 		}
 		# First we need to get the current list of members
 		# and track their type (user/group) as well
