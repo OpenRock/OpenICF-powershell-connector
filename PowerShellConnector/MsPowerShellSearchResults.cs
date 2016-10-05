@@ -123,6 +123,12 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             {
                 return ConnectorAttributeBuilder.Build(name);
             }
+            else if (value is byte[])
+                // byte[] is a specific type in ICF... 
+                //we do not want to convert it to a multi valued attribute
+            {
+                return ConnectorAttributeBuilder.Build(name, value);
+            }
             else if (value is object[] || value is ICollection)
             {
                 var list = new Collection<object>();
