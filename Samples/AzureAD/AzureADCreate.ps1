@@ -215,5 +215,12 @@ else
 }
 catch #Re-throw the original exception message within a connector exception
 {
+	# It is safe to remove the session flag
+	if ($Env:OpenICF_AAD) 
+	{
+		Remove-Item Env:\OpenICF_AAD
+		Write-Verbose "Removed session flag"
+	}
+
 	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
 }

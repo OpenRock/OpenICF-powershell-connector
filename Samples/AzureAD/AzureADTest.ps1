@@ -61,7 +61,8 @@ try
 {
  if ($Connector.Operation -eq "TEST")
  {
-	if (!$Env:OpenICF_AAD) {
+	if (!$Env:OpenICF_AAD) 
+	{
 		$msolcred = New-Object System.Management.Automation.PSCredential $Connector.Configuration.Login, $Connector.Configuration.Password.ToSecureString()
 		connect-msolservice -credential $msolcred
 		$Env:OpenICF_AAD = $true
@@ -78,5 +79,12 @@ try
 }
 catch #Re-throw the original exception message within a connector exception
 {
+	# It is safe to remove the session flag
+	if ($Env:OpenICF_AAD) 
+	{
+		Remove-Item Env:\OpenICF_AAD
+		Write-Verbose "Removed session flag"
+	}
+
 	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException($_.Exception.Message)
 }
