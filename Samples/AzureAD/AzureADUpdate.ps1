@@ -115,6 +115,8 @@ function Add-Attributes-Group ($attributes)
 			Add-MsolGroupMember @add
 		}
 	}
+	# We return the original __UID__ since no change
+	$Connector.Uid
 }
 
 function Remove-Attributes-Group ($attributes)
@@ -134,6 +136,8 @@ function Remove-Attributes-Group ($attributes)
 			Remove-MsolGroupMember @remove
 		}
 	}
+	# We return the original __UID__ since no change
+	$Connector.Uid
 }
 
 function Update-Group ($attributes)
