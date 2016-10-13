@@ -129,7 +129,18 @@ namespace Org.ForgeRock.OpenICF.Connectors.MsPowerShell
             {
                 return ConnectorAttributeBuilder.Build(name, value);
             }
-            else if (value is object[] || value is ICollection)
+            else if (value is Hashtable)
+            // HashTable is a common PowerShell type.
+            // It needs to be converted to IDictionary 
+            // to be a supported ICF type
+            {
+                return ConnectorAttributeBuilder.Build(name, HashTableToIDictionary(value as Hashtable));
+            }
+            else if (value is IDictionary)
+            {
+                return ConnectorAttributeBuilder.Build(name, value);
+            }
+            else if (value is object[] || value is IList)
             {
                 var list = new Collection<object>();
                 foreach (var val in (ICollection) value)
