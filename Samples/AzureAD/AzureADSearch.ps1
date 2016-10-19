@@ -20,7 +20,6 @@
 # your own identifying information:
 # " Portions Copyrighted [year] [name of copyright owner]"
 #
-# @author Gael Allioux <gael.allioux@forgerock.com>
 #
 #REQUIRES -Version 2.0
 
@@ -29,7 +28,8 @@
     This is a sample Search script with Azure AD as a target
 	
 .DESCRIPTION
-	This script leverages both Get-MsolUser and Get-MsolGroup to search for users and groups.
+	This script leverages both Get-MsolUser and Get-MsolGroup to search for users and groups,
+	as well as Get-MsolAccountSku to retrieve the list of available licenses.
 	It also demo how to use PowerShell pipes to handles the results back to the connector framework.
 	
 .INPUT VARIABLES
@@ -138,6 +138,63 @@ filter Process-Users {
 				}
 			}
 	}
+	# Get the licenses
+	if ($_.IsLicensed)
+	{
+		$licenses = @()
+		$licenseOptions = @{}
+		foreach ($license in $_.Licenses)
+		{
+			$options = New-Object 'System.Collections.Generic.Dictionary[String,String]'
+			foreach ($serviceStatus in $license.ServiceStatus)
+			{
+				$options.Add($serviceStatus.ServicePlan.ServiceName, $serviceStatus.ProvisioningStatus)	
+			}
+			$licenseOptions.Add($license.AccountSkuId, $options)
+			$licenses += $license.AccountSkuId
+		}
+		$result.Set_Item("Licenses", $licenses)
+		$result.Add("LicenseOptions", $licenseOptions)
+	}
+	$Connector.Result.Process($result)	
+}
+
+filter Process-Licenses {
+	$result = @{"__UID__" = $_.SkuId.ToString(); "__NAME__"= $_.AccountSkuId}
+	$result.Add("ActiveUnits", $_.ActiveUnits)
+	$result.Add("ConsumedUnits", $_.ConsumedUnits)
+	$result.Add("SuspendedUnits", $_.SuspendedUnits)
+	$result.Add("WarningUnits", $_.WarningUnits)
+	$result.Add("TargetClass", $_.TargetClass)
+	$result.Add("SkuPartNumber", $_.SkuPartNumber)
+	$result.Add("AccountName", $_.AccountName)
+
+	$services = @{}
+	foreach ($service in $_.ServiceStatus)
+	{
+		$services.Add($service.ServicePlan.ServiceName, $service.ProvisioningStatus.ToString())
+	}
+	$result.Add("ServiceStatus", $services)
+
+	$Connector.Result.Process($result)	
+}
+
+filter Process-Subscriptions {
+	$result = @{"__UID__" = $_.ObjectId.ToString(); "__NAME__" = $_.SkuPartNumber}
+	$result.Add("DateCreated", $_.DateCreated.ToString())
+	$result.Add("NextLifecycleDate", $_.NextLifecycleDate.ToString())
+	$result.Add("OcpSubscriptionId", $_.OcpSubscriptionId.ToString())
+	$result.Add("SkuId", $_.SkuId.ToString())
+	$result.Add("TotalLicenses", $_.TotalLicenses)
+	$result.Add("Status", $_.Status)
+
+	$services = @{}
+	foreach ($service in $_.ServiceStatus)
+	{
+		$services.Add($service.ServicePlan.ServiceName, $service.ProvisioningStatus.ToString())
+	}
+	$result.Add("ServiceStatus", $services)
+
 	$Connector.Result.Process($result)	
 }
 
@@ -216,6 +273,18 @@ try
 					{
 						Get-MsolUser -All -UsageLocation $Connector.Query.Right | Process-Users
 					}
+					"IsLicensed"
+					{
+						if ($Connector.Query.Right)
+						{
+							Get-MsolUser -All | Where-Object {$_.IsLicensed -eq $true} | Process-Users
+						}
+						else
+						{
+							Get-MsolUser -All -UnlicensedUsersOnly | Process-Users
+						}
+						
+					}
 				}
 			}
 			elseif ($Connector.Query.Operation -eq "STARTSWITH")
@@ -261,6 +330,48 @@ try
 			elseif ($Connector.Query.Operation -eq "STARTSWITH")
 			{
 				Get-MsolGroup -All -SearchString $Connector.Query.Right | Process-Groups
+			}
+		}
+		# https://msdn.microsoft.com/en-us/library/azure/dn194118
+		"License"
+		{
+			if ($Connector.Query -eq $null) {
+				Get-MsolAccountSku | Process-Licenses
+			}
+			elseif ($Connector.Query.Operation -eq "EQUALS")
+			{
+				switch ($Connector.Query.Left)
+				{
+					"__UID__"
+					{
+						Get-MsolAccountSku | Where-Object {$_.SkuId -eq $Connector.Query.Right} | Process-Licenses
+					}
+					"__NAME__"
+					{
+						Get-MsolAccountSku | Where-Object {$_.AccountSkuId -eq $Connector.Query.Right} | Process-Licenses
+					}
+				}
+			}
+		}
+		# https://msdn.microsoft.com/en-us/library/azure/dn194084
+		"Subscription"
+		{
+			if ($Connector.Query -eq $null) {
+				Get-MsolSubscription | Process-Subscriptions
+			}
+			elseif ($Connector.Query.Operation -eq "EQUALS")
+			{
+				switch ($Connector.Query.Left)
+				{
+					"__UID__"
+					{
+						Get-MsolSubscription -SubscriptionId $Connector.Query.Right | Process-Subscriptions
+					}
+					"__NAME__"
+					{
+						Get-MsolSubscription | Where-Object {$_.SkuPartNumber -eq $Connector.Query.Right} | Process-Subscriptions
+					}
+				}
 			}
 		}
 		default

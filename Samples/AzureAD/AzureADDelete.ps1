@@ -20,7 +20,6 @@
 # your own identifying information:
 # " Portions Copyrighted [year] [name of copyright owner]"
 #
-# @author Gael Allioux <gael.allioux@forgerock.com>
 #
 #REQUIRES -Version 2.0
 

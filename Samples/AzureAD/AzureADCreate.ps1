@@ -20,7 +20,6 @@
 # your own identifying information:
 # " Portions Copyrighted [year] [name of copyright owner]"
 #
-# @author Gael Allioux <gael.allioux@forgerock.com>
 #
 #REQUIRES -Version 2.0
 
@@ -128,7 +127,7 @@ function Create-NewUser ($attributes)
 	}
 	
 	# Standard attributes - multi valued String
-	$standardMulti = @("AlternateEmailAddresses", "LicenseAssignment")
+	$standardMulti = @("AlternateEmailAddresses")
 	foreach ($name in $standardMulti)
 	{
 		$val = $accessor.FindStringList($name)
@@ -174,9 +173,35 @@ function Create-NewUser ($attributes)
 		$param.Add("Password",$secutil::Decrypt($password))
 	}
 	
-	# What's left? 
+	# LicenseAssignment: License(s) assigned to the user
+	$licenses = $accessor.FindStringList("Licenses")
+	if (($licenses -ne $null) -and ($licenses.Count -gt 0))
+	{	
+		$param.Add("LicenseAssignment",$licenses)
+	}
     # LicenseOptions: License options for license assignment. Used to selectively disable individual service plans within a SKU.
-	# TenantId
+	$licenseOptions = $accessor.FindDictionary("LicenseOptions")
+	if (($licenseOptions -ne $null) -and ($licenseOptions.Count -gt 0))
+	{	
+		$options = @()
+		foreach ($key in $licenseOptions.Keys)
+		{
+			$service = @()
+			foreach ($serv in $licenseOptions[$key])
+			{
+				$service += $serv
+			}
+			if ($service.Count -eq 0)
+			{
+				$service = $null
+			}
+			$options += New-MsolLicenseOptions -AccountSkuId $key -DisabledPlans $service
+		}
+		$param.Add("LicenseOptions",$options)
+	}
+	
+	# TenantId ?
+
 	$user = New-MsolUser @param
 	$user.ObjectId.ToString()
 }

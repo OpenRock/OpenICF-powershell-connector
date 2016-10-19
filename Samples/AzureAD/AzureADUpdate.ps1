@@ -20,7 +20,6 @@
 # your own identifying information:
 # " Portions Copyrighted [year] [name of copyright owner]"
 #
-# @author Gael Allioux <gael.allioux@forgerock.com>
 #
 #REQUIRES -Version 2.0
 
@@ -226,12 +225,50 @@ function Update-Group ($attributes)
 
 function Add-Attributes-User ($attributes)
 {
-	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation) for __ACCOUNT__ type")
+	# Most likely a license update
+	$accessor = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributesAccessor($attributes)
+	$licenses = $accessor.FindList("Licenses")
+
+	# According to https://msdn.microsoft.com/en-us/library/azure/dn194094
+	# Set-MsolUserLicense -ObjectId <Guid> [-AddLicenses <string[]>] [-LicenseOptions <LicenseOption[]>] [-RemoveLicenses <string[]>] [-TenantId <Guid>]
+	if (($null -ne $licenses) -and ($licenses.Count -gt 0))
+	{
+		$toAdd = @()
+		foreach ($lic in $licenses)
+		{
+			$toAdd += $lic
+		}
+		$param = @{"ObjectId" = $Connector.Uid.GetUidValue()}
+		$param.Add("AddLicenses", $toAdd)
+		Set-MsolUserLicense @param
+		Write-verbose "$($licenses.Count) license(s) added"
+	}
+	# We return the original __UID__ since no change
+	$Connector.Uid
 }
 
 function Remove-Attributes-User ($attributes)
 {
-	throw New-Object Org.IdentityConnectors.Framework.Common.Exceptions.ConnectorException("UpdateScript can not handle operation: $($Connector.Operation) for __ACCOUNT__ type")
+	# Most likely a license update
+	$accessor = New-Object Org.IdentityConnectors.Framework.Common.Objects.ConnectorAttributesAccessor($attributes)
+	$licenses = $accessor.FindList("Licenses")
+
+	# According to https://msdn.microsoft.com/en-us/library/azure/dn194094
+	# Set-MsolUserLicense -ObjectId <Guid> [-AddLicenses <string[]>] [-LicenseOptions <LicenseOption[]>] [-RemoveLicenses <string[]>] [-TenantId <Guid>]
+	if (($null -ne $licenses) -and ($licenses.Count -gt 0))
+	{
+		$toRemove = @()
+		foreach ($lic in $licenses)
+		{
+			$toRemove += $lic
+		}
+		$param = @{"ObjectId" = $Connector.Uid.GetUidValue()}
+		$param.Add("RemoveLicenses", $toRemove)
+		Set-MsolUserLicense @param
+		Write-verbose "$($licenses.Count) license(s) removed"
+	}
+	# We return the original __UID__ since no change
+	$Connector.Uid
 }
 
 function Update-User ($attributes)
@@ -341,8 +378,33 @@ function Update-User ($attributes)
 		Write-Verbose "UserPrincipalName updated"
 	}
 	
-	# What's left? 
     # LicenseOptions: License options for license assignment. Used to selectively disable individual service plans within a SKU.
+	# According to https://msdn.microsoft.com/en-us/library/azure/dn194094
+	# Set-MsolUserLicense -ObjectId <Guid> [-AddLicenses <string[]>] [-LicenseOptions <LicenseOption[]>] [-RemoveLicenses <string[]>] [-TenantId <Guid>]
+	
+	$licenseOptions = $accessor.FindDictionary("LicenseOptions")
+	if (($licenseOptions -ne $null) -and ($licenseOptions.Count -gt 0))
+	{	
+		$oparam = @{"ObjectId" = $Connector.Uid.GetUidValue()}
+		$options = @()
+		foreach ($key in $licenseOptions.Keys)
+		{
+			$service = @()
+			foreach ($serv in $licenseOptions[$key])
+			{
+				$service += $serv
+			}
+			if ($service.Count -eq 0)
+			{
+				$service = $null
+			}
+			$options += New-MsolLicenseOptions -AccountSkuId $key -DisabledPlans $service
+		}
+		$oparam.Add("LicenseOptions",$options)
+		Set-MsolUserLicense @oparam
+		Write-Verbose "License options updated"
+	}
+		
 	# TenantId
 	
 	if($modification)
